@@ -1,61 +1,39 @@
 import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import InputField from "./InputField";
 import Button from "./Button";
-import { Link } from "react-router-dom";
-function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+import { login, emailOk } from "../auth";
+
+export default function Login({ setUser }) {
+  const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const notice = useLocation().state?.notice;
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
-  function handleSubmit(e) {
+  async function submit(e) {
     e.preventDefault();
-    if (!email || !password) {
-      setError("All fields are required");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-
-    setError("");
-    console.log(email, password);
+    if (!emailOk(form.email)) return setError("Enter a valid email address.");
+    setLoading(true); setError("");
+    try { setUser(await login(form)); navigate("/dashboard"); }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   }
 
   return (
-    <div>
-      <h2>Login</h2>
-
-      <form onSubmit={handleSubmit}>
-        <InputField
-          label="Email"
-          type="email"
-          placeholder="Enter email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <InputField
-          label="Password"
-          type="password"
-          placeholder="Enter password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        {error && <p style={{ color: "red" }}>{error}</p>}
-
-        <Button text="Login" type="submit" />
-        <p>
-          <Link to="/forgot-password">Forgot password?</Link>
-        </p>
-        <p>
-          No account? <Link to="/signup">Sign up</Link>
-        </p>
-      </form>
-    </div>
+    <form className="card" onSubmit={submit} noValidate>
+      <h1>Log in</h1>
+      <p className="sub">Welcome back.</p>
+      <InputField label="Email" type="email" autoComplete="email" value={form.email} onChange={set("email")} />
+      <InputField label="Password" type="password" autoComplete="current-password" value={form.password} onChange={set("password")} />
+      {notice && <p className="msg ok">{notice}</p>}
+      {error && <p className="msg err" role="alert">{error}</p>}
+      <Button type="submit" loading={loading}>Log in</Button>
+      <div className="row">
+        <Link to="/forgot-password">Forgot password?</Link>
+        <Link to="/signup">Create account</Link>
+      </div>
+    </form>
   );
 }
-
-export default Login;
